@@ -30,6 +30,14 @@ class Task extends Base {
 		//权限todu
 
 		//数据整理todu
+		$cover = $_FILES['cover'];
+		//封面
+		if($cover['tmp_name']){
+			$file = uploadfiles('home',array(),$cover);
+			if($file['code'] != 0){
+				Response::error(ReturnCode::EMPTY_PARAMS, '封面:'.$file['error_m']);
+			}
+		}
 
 		$arr = array();
 		$arr['name'] = $postData['name'];
@@ -37,7 +45,7 @@ class Task extends Base {
 		$arr['end_time'] = $postData['end_time'];
 		$arr['type'] = 0;
 		$arr['post_uid'] = $uid;
-		$arr['cover'] = '';
+		$arr['cover'] = $file['filepath'];
 		$arr['content'] = $postData['content'];
 		$arr['fid'] = $postData['fid'];
 		$arr['create_time'] = time();
@@ -52,6 +60,64 @@ class Task extends Base {
 		$this->ajaxSuccess('成功',0,$arr);
 	}
 
+	/**
+	 * 编辑家族任务
+	 * @access public
+	 * @param 
+	 * @param array $options  
+	 * @return json
+	 */
+	public function edit(){
+		$tid = I('tid');
+		$postData = I('.post');
+
+		//$cover = $_FILES['cover'];
+		//封面
+		if($cover['tmp_name']){
+			$file = uploadfiles('home',array(),$cover);
+			if($file['code'] != 0){
+				Response::error(ReturnCode::EMPTY_PARAMS, '封面:'.$file['error_m']);
+			}
+		}
+
+		$arr = array();
+		$arr['name'] = $postData['name'];
+		$arr['start_time'] = $postData['start_time'];
+		$arr['end_time'] = $postData['end_time'];
+		$arr['type'] = 0;
+		$arr['cover'] = $file['filepath'];
+		$arr['content'] = $postData['content'];
+		$arr['update_time'] = time();
+
+		//存入数据
+		$res = M('t_family_task') ->where(array('id' => $tid))-> save($arr);
+		if (!$res) {
+			$this->ajaxError('更新失败');
+		}
+		$this->ajaxSuccess('成功',0,$arr);
+	}
+
+	/**
+	 * 删除家族任务
+	 * @access public
+	 * @param 
+	 * @param array $options  
+	 * @return json
+	 */
+	public function del(){
+		$tid = I('tid');
+
+		$update = array();
+		$update['status'] = 1;
+
+
+		//存入数据
+		$res = M('t_family_task') ->where(array('id' => $tid))-> save($update);
+		if (!$res) {
+			$this->ajaxError('删除失败');
+		}
+		$this->ajaxSuccess('成功',0,$arr);
+	}
 
 	/**
 	 * 家族任务列表

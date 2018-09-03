@@ -28,6 +28,11 @@ class Family extends Base {
 		//权限todu
 
 		//数据整理todu
+		//一个人最多可创建2个家族
+		$rows = M('t_family')->where(array('creator_uid' => $uid))->count();
+		if ($rows >= 2) {
+			$this -> ajaxError('不允许创建家族，您已有2个家族');
+		}
 
 		$arr = array();
 		$arr['honorary_chieftain_uid'] = '';
@@ -40,12 +45,58 @@ class Family extends Base {
 		$arr['status'] = 0;
 		$arr['desc'] = '';
 		//存入数据
-		$res = M('t_family') -> add($arr);
-		if (!$res) {
+		$id = M('t_family') -> add($arr);
+		if (!$id) {
 			$this->ajaxError('添加失败');
 		}
+		//同步插入一条，创建者的成员信息
+		$user_info = $this ->bmob(array('where={"id":'.$uid.'}'));
+		$arr = array();
+		$arr['uid'] = $uid;
+		$arr['paternity_fid'] = '';
+		$arr['matrilineal_fid'] = '';
+		$arr['fid'] = $id;
+		$arr['spouse_paternity_fid'] = '';
+		$arr['spouse_matrilineal_fid'] = '';
+		$arr['surname'] = $user_info['nickname'];
+		$arr['name'] = '';
+		$arr['phone'] = $user_info['phonenum'];
+		//$arr['relationship_code'] = '';
+		$arr['generational_code'] = 0;
+		$arr['father_creator_uid'] = '';
+		$arr['mother_creator_uid'] = '';
+		$arr['creator_uid'] = $uid;
+		$arr['create_time'] = time();
+		$arr['update_time'] = 0;
+		$arr['status'] = 1;
+		$res = M('t_family_member') -> add($arr);
+
 		$this->ajaxSuccess('成功',0,$arr);
 	}
+
+	/**
+	 * 我的家族列表 包括我和配偶的
+	 * @access public
+	 * @param 
+	 * @param array 
+	 * @return json
+	 */
+	public function familylist(){
+		$uid = I('uid');
+
+		//
+		$family_fids = M('t_family_member')->field('fid')->where(array('uid' => $uid))->group('fid')->select();
+		//print_r($family_fids);exit;
+		$family_db = M('t_family');
+		$list = array();
+		foreach ($family_fids as $key => $val) {
+			$family_info = $family_db->field('id,name')->where(array('id' => $val['fid']))->find();
+			$list[] = $family_info;
+		}
+
+		$this -> ajaxSuccess('成功',0,$list);
+	}
+
 
 	/**
 	 * 添加家族成员
@@ -58,8 +109,8 @@ class Family extends Base {
 		$postData = I('.post');
 		$uid = I('uid');
 
-		//获取用户基本信息
-		$userinfo = M('t_family')->where(array('creator_uid' => $uid))->find();
+		//获取家族基本信息
+		$family = M('t_family')->where(array('creator_uid' => $uid))->find();
 		//权限todu
 
 		//数据整理todu
@@ -88,15 +139,16 @@ class Family extends Base {
 		}
 
 		$arr = array();
-		$arr['uid'] = $uid;
-		if ($userinfo['category'] == 1) {
+		$arr['uid'] = $res['results']['id'] ?: '';
+		if ($family['category'] == 1) {
 			$arr['paternity_fid'] = '';
-			$arr['matrilineal_fid'] = $userinfo['id'];
+			$arr['matrilineal_fid'] = $family['id'];
 		}else{
-			$arr['paternity_fid'] = $userinfo['id'];
+			$arr['paternity_fid'] = $family['id'];
 			$arr['matrilineal_fid'] = '';
 		}
 		
+		$arr['fid'] = $family['id'];
 		$arr['spouse_paternity_fid'] = '';
 		$arr['spouse_matrilineal_fid'] = '';
 		$arr['surname'] = $postData['surname'];
@@ -116,6 +168,9 @@ class Family extends Base {
 		if (!$res) {
 			$this->ajaxError('添加失败');
 		}
+		if ($is_visitor) {
+			$this->ajaxSuccess('成功',0,array('is_visitor' => 1,'phone' => $postData['phone']));
+		}
 		$this->ajaxSuccess('成功',0,$arr);
 	}
 
@@ -129,8 +184,13 @@ class Family extends Base {
 	public function invitation(){
 		$postData = I('.post');
 		$uid = I('uid');
-		//获取用户基本信息
+		//获取用户基本信息 是否是家族创建者
 		$userinfo = M('t_family')->where(array('creator_uid' => $uid))->find();
+		$fid = $userinfo['id'];
+		if (!$userinfo) {
+			$userinfo = M('t_family_member')->where(array('uid' => $uid))->find();
+			$fid = $userinfo['fid'];
+		}
 		//权限todu
 
 		//数据整理todu
@@ -139,11 +199,32 @@ class Family extends Base {
 		$arr['msg_type'] = 0;
 		$arr['from_uid'] = $uid;
 		$arr['to_uid'] = $postData['to_uid'];
-		$arr['fid'] = $userinfo['id'];
+		$arr['fid'] = $fid;
 		$arr['is_read'] = 0;
 		$arr['datetime'] = time();
 		//存入数据
 		$res = M('t_family_message') -> add($arr);
+
+		//插入家族成员信息，头像为问号
+		//查询受邀人的姓名
+		$to_userinfo = $this ->bmob(array('where={"id":'.$postData['to_uid'].'}'));
+
+		$member = array();
+		$member['uid'] = $uid;
+		$member['fid'] = $fid;
+		$member['spouse_paternity_fid'] = '';
+		$member['spouse_matrilineal_fid'] = '';
+		$member['surname'] = $to_userinfo['nickname'];
+		$member['name'] = '';
+		$member['phone'] = $to_userinfo['phonenum'];
+		$member['generational_code'] = $postData['generational_code'];
+		$member['father_creator_uid'] = '';
+		$member['mother_creator_uid'] = '';
+		$member['creator_uid'] = $uid;
+		$member['create_time'] = time();
+		$member['update_time'] = 0;
+		$member['status'] = 0;
+
 		if (!$res) {
 			$this->ajaxError('添加失败');
 		}
@@ -186,52 +267,117 @@ class Family extends Base {
 	public function join(){
 		$mid = I('mid'); 
 		$uid = I('uid');
-		$fid = I('fid');
+		//$fid = I('fid');
 		$status = I('status'); //  1 同意 2拒绝
 		//获取用户基本信息
-		$userinfo = M('t_family')->where(array('creator_uid' => $uid))->find();
+		$family = M('t_family')->where(array('creator_uid' => $uid))->find();
 		$userinfos = M('t_family_member')->where(array('uid' => $uid))->find();
+		$fid = $userinfos['fid'];
+		
 		//获取邀请人的信息
-		$from_userinfo =  M('t_family_message')->where(array('id' => $uid))->find();
+		$message =  M('t_family_message')->where(array('id' => $mid))->find();
+		$from_userinfo = M('t_family_member')->where(array('uid' => $message['to_uid']))->find();
+		$from_family = M('t_family')->where(array('creator_uid' => $message['to_uid']))->find();
 		//权限todu
 
 		//数据整理todu
 
 		if ($status != 1) {
-			//更新
-			$update = array();
-			if ($userinfo) {
-				$update['msg_type'] = 5;
+			//
+			$arr = array();
+			if ($family) {
+				$arr['msg_type'] = 5;
 			}else{
-				$update['msg_type'] = 2;
+				$arr['msg_type'] = 2;
 			}
-			M('t_family_message')->where(array('id' => $mid))->save($update);
+			//插入一条消息
+			$arr['from_uid'] = $uid;
+			$arr['to_uid'] = $message['to_uid'];
+			$arr['fid'] = $fid;
+			$arr['is_read'] = 0;
+			$arr['datetime'] = time();
+			$res = M('t_family_message') -> add($arr);
 		}else{
-			if ($userinfo) {
-				//合并家族并且向其成员发送邀请信息
-				
-			}else{
-				$update['msg_type'] = 1;
-				M('t_family_message')->where(array('id' => $mid))->save($update);
-				//更新家族成员的 代数 家族id 还是插入一条
+			if ($family) {
+				//合并家族并且向其成员发送邀请信息,父系家族不可与母系家族合并
+				if ($family['category'] != $from_family['category']) {
+					$this -> ajaxError('性质不符！');
+				}
+				//插入同意message
+				//更新家族成员家族及代数
+				//查找其与邀请人相同性质的家族id
+				//查找其家族所有成员，发送邀请信息
+				$arr = array();
+				$arr['from_uid'] = $uid;
+				$arr['to_uid'] = $message['to_uid'];
+				$arr['fid'] = $fid;
+				$arr['is_read'] = 0;
+				$arr['datetime'] = time();
+				$arr['msg_type'] = 1;
+				$res = M('t_family_message') -> add($arr);
+				//更新家族成员的 代数 
 				$f_update = array();
-				$f_update['fid'] = $fid;	
+				$f_update['fid'] = $fid;
+				$f_update['generational_code'] = $userinfos['generational_code'] + $from_userinfo['generational_code'];
+				M('t_family_member')->where(array('uid' => $uid))->save($f_update);
+				//
+				$family_merge_info = M('t_family')->where(array('creator_uid' => $uid, 'category' => $from_family['category']))->find();
+				//
+				$members_merge_info = M('t_family_member')->where(array('fid' => $family_merge_info['id']))->find();
+				$message_ints = array();
+				foreach ($members_merge_info as $key => $val) {
+					$item = array();
+					$item['from_uid'] = $message['to_uid'];
+					$item['to_uid'] = $val['uid'];
+					$item['fid'] = $fid;
+					$item['is_read'] = 0;
+					$item['datetime'] = time();
+					$item['msg_type'] = 0;
+
+					$message_ints[] = $item;
+				}
+				M('t_family_message') -> addAll($message_ints);
+			}else{
+				$arr = array();
+				$arr['from_uid'] = $uid;
+				$arr['to_uid'] = $message['to_uid'];
+				$arr['fid'] = $fid;
+				$arr['is_read'] = 0;
+				$arr['datetime'] = time();
+				$arr['msg_type'] = 1;
+				$res = M('t_family_message') -> add($arr);
+				//更新家族成员的 代数 
+				$f_update = array();
+				$f_update['fid'] = $fid;
+				$f_update['generational_code'] = $userinfos['generational_code'] + $from_userinfo['generational_code'];
+				M('t_family_member')->where(array('uid' => $uid))->save($f_update);	
 			}
 		}
 
-		$arr = array();
-		$arr['msg_type'] = 0;
-		$arr['from_uid'] = $uid;
-		$arr['to_uid'] = $postData['to_uid'];
-		$arr['fid'] = $userinfo['id'];
-		$arr['is_read'] = 0;
-		$arr['datetime'] = time();
-		//存入数据
-		$res = M('t_family_message') -> add($arr);
-		if (!$res) {
-			$this->ajaxError('添加失败');
-		}
 		$this->ajaxSuccess('成功',0,$arr);
+	}
+
+	/**
+	 * 消息标为已读
+	 * @access public
+	 * @param 
+	 * @param array $options  
+	 * @return json
+	 */
+	public function readmessage(){
+		$mid = I('mid');
+
+		//权限校验todu
+
+		$update = array();
+		$update['is_read'] = 1;
+		$update['update_time'] = time();
+
+		$res = M('t_family_message')->where(array('id' => $mid))->save($update);
+		if (!$res) {
+			$this -> ajaxError('提交失败！');
+		}
+		$this -> ajaxSuccess('成功', 0 , $update);
 	}
 
 	/**
@@ -241,11 +387,13 @@ class Family extends Base {
 	 * @param array $options  
 	 * @return json
 	 */
-	public function list(){
+	public function lists(){
 		$fid = I('fid');
 
 		//权限校验todu
 
+		//家族的基本信息
+		$info = M('t_family')->field('id,name')->where(array('id' => $fid))->find();	
 		//获取数据
 		$list = M('t_family_member')->field('id,surname,name,generational_code')->where(array('fid' => $fid))->select();
 
@@ -254,8 +402,14 @@ class Family extends Base {
 		foreach ($list as $key => $val) {
 			$n_list[$val['generational_code']][] = $val;
 		}
+		$members = array_values($n_list);
 
-		$this ->ajaxSuccess('成功',0,array('list' => $n_list));
+		$arr = array();
+		$arr['id'] = $info['id'];
+		$arr['name'] = $info['name'];
+		$arr['members'] = $members;
+
+		$this ->ajaxSuccess('成功',0,array('list' => $arr));
 	}
 
 	/**
