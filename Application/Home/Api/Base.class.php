@@ -49,9 +49,14 @@ class Base {
 	 */
 	public function bmob($where = array()){
 		include_once 'Public/bmob_php_sdk/lib/BmobObject.class.php';
-    	$bmobObj = new BmobObject("User");
+    	$bmobObj = new \BmobObject("User");
 
-    	$res = $bmobObj -> get();
+    	if ($where) {
+    		$res = $bmobObj -> get('',$where);
+    	}else{
+    		$res = $bmobObj -> get();
+    	}
+    	
     	$res = json_decode(json_encode($res),true);
     	return $res;
 	}

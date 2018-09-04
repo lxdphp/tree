@@ -1,7 +1,7 @@
 <?php
 /**
  * 家族
- * @since   2017/04/24 创建
+ * @since   2018/08/24 创建
  * @author  lingxiao
  */
 
@@ -24,20 +24,20 @@ class Task extends Base {
 	 * @return json
 	 */
 	public function add(){
-		$postData = I('.post');
+		$postData = I('post.');
 
 		$uid = I('uid');
 		//权限todu
 
 		//数据整理todu
-		$cover = $_FILES['cover'];
+		/*$cover = $_FILES['cover'];
 		//封面
 		if($cover['tmp_name']){
 			$file = uploadfiles('home',array(),$cover);
 			if($file['code'] != 0){
 				Response::error(ReturnCode::EMPTY_PARAMS, '封面:'.$file['error_m']);
 			}
-		}
+		}*/
 
 		$arr = array();
 		$arr['name'] = $postData['name'];
@@ -45,7 +45,7 @@ class Task extends Base {
 		$arr['end_time'] = $postData['end_time'];
 		$arr['type'] = 0;
 		$arr['post_uid'] = $uid;
-		$arr['cover'] = $file['filepath'];
+		$arr['cover'] = $postData['cover'];
 		$arr['content'] = $postData['content'];
 		$arr['fid'] = $postData['fid'];
 		$arr['create_time'] = time();
@@ -69,7 +69,7 @@ class Task extends Base {
 	 */
 	public function edit(){
 		$tid = I('tid');
-		$postData = I('.post');
+		$postData = I('post.');
 
 		//$cover = $_FILES['cover'];
 		//封面
@@ -165,5 +165,31 @@ class Task extends Base {
 		}*/
 
 		$this ->ajaxSuccess('成功',0,$info));
+	}
+
+	/**
+	 * 接受任务
+	 * @access public
+	 * @param 
+	 * @param array $options  
+	 * @return json
+	 */
+	public function accept(){
+		$tid = I('tid');
+		$uid = I('uid');
+
+		$arr = array();
+		//$arr['']
+	}
+
+	/**
+	 * 完成任务
+	 * @access public
+	 * @param 
+	 * @param array $options  
+	 * @return json
+	 */
+	public function accept(){
+		
 	}
 }
