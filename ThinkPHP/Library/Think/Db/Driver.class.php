@@ -67,6 +67,7 @@ abstract class Driver {
         PDO::ATTR_ERRMODE           =>  PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_ORACLE_NULLS      =>  PDO::NULL_NATURAL,
         PDO::ATTR_STRINGIFY_FETCHES =>  false,
+        PDO::ATTR_EMULATE_PREPARES  =>   false,  //把这行加上去就可以了，是不是很简单
     );
     protected $bind         =   array(); // 参数绑定
 

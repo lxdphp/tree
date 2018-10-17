@@ -32,10 +32,10 @@ if (!function_exists('apache_request_headers')) {
  * @author jry <598821125@qq.com>
  */
 function user_md5($str, $auth_key = ''){
-    if(!$auth_key){
-        $auth_key = C('AUTH_KEY');
-    }
-    return '' === $str ? '' : md5(sha1($str) . $auth_key);
+	if(!$auth_key){
+		$auth_key = C('AUTH_KEY');
+	}
+	return '' === $str ? '' : md5(sha1($str) . $auth_key);
 }
 
 /**
@@ -79,17 +79,17 @@ function uploadfiles($type='common',$data=array(),$file=array(),$watermark=true)
 	switch ($type) {
 		case 'admin':
 			$pathurl = './Public/Upload/admin/';
-		    break;
+			break;
 		case 'home':
 			$pathurl = './Public/Upload/home/';
-		    break;
+			break;
 		case 'common':
 			$pathurl = './Public/Upload/common/';
-		    break;
+			break;
 		default:
-		    $type   = 'common';
+			$type   = 'common';
 			$pathurl = './Public/Upload/common/';
-		    break;
+			break;
 	}
 	$config = array(
 		'rootPath' =>  $pathurl, // 设置附件上传根目录
@@ -159,13 +159,13 @@ function uploadfiles($type='common',$data=array(),$file=array(),$watermark=true)
 	}
 
 	/*if(count($_FILES)){
-	    $info = $upload->upload();// 如果是二维数组，使用批量上传文件的方法(上传文件时，每个文件域的name属性是未知的或者以数组形式定义的)
-	    if(!$info){
-	        $upload->errorMsg($upload->getError());
-	        exit;
-	    }
-	    $arr['array'] = $info;//数组上传的返回信息全部在键名为array的
-	    $arr['array'] = 'Upload/'.$type.'/'.$info['savepath'].$info['savename'];
+		$info = $upload->upload();// 如果是二维数组，使用批量上传文件的方法(上传文件时，每个文件域的name属性是未知的或者以数组形式定义的)
+		if(!$info){
+			$upload->errorMsg($upload->getError());
+			exit;
+		}
+		$arr['array'] = $info;//数组上传的返回信息全部在键名为array的
+		$arr['array'] = 'Upload/'.$type.'/'.$info['savepath'].$info['savename'];
 	}*/
 
 	unset($upload);
